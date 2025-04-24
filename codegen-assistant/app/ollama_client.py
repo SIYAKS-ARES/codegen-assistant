@@ -1,5 +1,6 @@
 import requests
 import json
+import re
 
 class OllamaClient:
     """Ollama API ile iletişim kuran istemci sınıfı."""
@@ -23,16 +24,23 @@ class OllamaClient:
         Returns:
             dict: {"code": "üretilen kod", "title": "kod başlığı"}
         """
-        # Sistem promptu hazırla
+        # Sistem promptu hazırla - daha net yönergelerle
         system_prompt = """
-        Sen bir Python kod üretici asistansın. Kullanıcıdan gelen isteğe göre:
-        1. Sadece çalışır bir Python kod bloğu üret.
-        2. Kodun ne işe yaradığını özetleyen kısa bir başlık döndür.
-        Cevabını şu formatta ver:
+        Sen yüksek kaliteli bir Python kod asistanısın. Kullanıcıdan gelen isteğe göre hem kod hem başlık üretmelisin:
+        
+        1. Önce isteğe uygun çalışan bir Python kodu yaz
+        2. Sonra bu kodun amacını özetleyen kısa bir başlık ekle
+        
+        Yanıtını TAM OLARAK aşağıdaki formatta vermelisin. Bu format ZORUNLUDUR:
+        
         ---CODE---
-        <python kodu buraya>
+        def example_function():
+            # kod örneği
+            return "sonuç"
         ---TITLE---
-        <başlık buraya>
+        Örnek Başlık: Bu fonksiyon ne yapar
+        
+        Hem kod hem başlık kısmını mutlaka doldur. Başka açıklama ekleme.
         """
         
         # İstek gövdesi
@@ -40,7 +48,9 @@ class OllamaClient:
             "model": model,
             "prompt": prompt,
             "system": system_prompt,
-            "stream": False
+            "stream": False,
+            "temperature": 0.3,  # Daha tutarlı yanıtlar için
+            "max_tokens": 2000   # Yeterince uzun yanıt için
         }
         
         try:
@@ -54,14 +64,33 @@ class OllamaClient:
             
             # Yanıtı ayrıştır
             code_part = ""
-            title_part = ""
+            title_part = "Başlık bulunamadı"  # Varsayılan değer
             
-            if "---CODE---" in response_text and "---TITLE---" in response_text:
-                code_section = response_text.split("---CODE---")[1].split("---TITLE---")[0].strip()
-                title_section = response_text.split("---TITLE---")[1].strip()
+            # Regex ile bölümleri bul
+            code_match = re.search(r'---CODE---(.*?)(?:---TITLE---|$)', response_text, re.DOTALL)
+            title_match = re.search(r'---TITLE---(.*?)$', response_text, re.DOTALL)
+            
+            if code_match:
+                code_part = code_match.group(1).strip()
+            
+            if title_match:
+                title_part = title_match.group(1).strip()
+            
+            # Başlık yoksa, alternatif yöntem
+            if not title_part or title_part == "Başlık bulunamadı":
+                # Başlık üretmek için yeni bir istek gönder
+                title_prompt = f"Aşağıdaki Python kodunun ne yaptığını bir başlık olarak özetle (30 karakterden kısa):\n\n```python\n{code_part}\n```"
+                title_payload = {
+                    "model": model,
+                    "prompt": title_prompt,
+                    "system": "Verilen kodun ne yaptığını çok kısa bir başlıkla özetle.",
+                    "stream": False,
+                    "max_tokens": 100
+                }
                 
-                code_part = code_section
-                title_part = title_section
+                title_response = requests.post(self.generate_url, json=title_payload)
+                if title_response.status_code == 200:
+                    title_part = title_response.json().get("response", "").strip()
             
             return {"code": code_part, "title": title_part}
             
