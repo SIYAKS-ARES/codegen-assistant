@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yapay Zeka Destekli Kod Üretici</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f9fc;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            resize: vertical;
+            min-height: 100px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: block;
+            margin: 0 auto;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .result {
+            margin-top: 30px;
+            display: none;
+        }
+        .title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        .code-container {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .loading {
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Yapay Zeka Destekli Kod Üretici</h1>
+        
+        <textarea id="prompt" placeholder="Python kodu üretmek için bir istek yazın... (Örn: 'İki sayıyı toplayan bir fonksiyon yaz')"></textarea>
+        
+        <button id="generateBtn">Kod Üret</button>
+        
+        <div class="loading" id="loading">
+            Yapay zeka kod üretiyor... Lütfen bekleyin.
+        </div>
+        
+        <div class="error" id="error">
+            Hata oluştu. Lütfen tekrar deneyin.
+        </div>
+        
+        <div class="result" id="result">
+            <div class="title" id="title"></div>
+            <div class="code-container">
+                <pre id="code"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const generateBtn = document.getElementById('generateBtn');
+            const promptInput = document.getElementById('prompt');
+            const resultDiv = document.getElementById('result');
+            const codeOutput = document.getElementById('code');
+            const titleOutput = document.getElementById('title');
+            const loadingDiv = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
+            
+            generateBtn.addEventListener('click', async function() {
+                const prompt = promptInput.value.trim();
+                
+                if (!prompt) {
+                    alert('Lütfen bir istek girin');
+                    return;
+                }
+                
+                // UI durumunu güncelle
+                resultDiv.style.display = 'none';
+                loadingDiv.style.display = 'block';
+                errorDiv.style.display = 'none';
+                generateBtn.disabled = true;
+                
+                try {
+                    // API'ye istek gönder
+                    const response = await fetch('/generate', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ prompt: prompt })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('API hatası: ' + response.status);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Sonuçları göster
+                    codeOutput.textContent = data.code;
+                    titleOutput.textContent = data.title;
+                    resultDiv.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('Hata:', error);
+                    errorDiv.textContent = 'Hata: ' + error.message;
+                    errorDiv.style.display = 'block';
+                } finally {
+                    loadingDiv.style.display = 'none';
+                    generateBtn.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

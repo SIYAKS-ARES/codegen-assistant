@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: codegen-assistant
+  labels:
+    app: codegen-assistant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: codegen-assistant
+  template:
+    metadata:
+      labels:
+        app: codegen-assistant
+    spec:
+      containers:
+      - name: codegen-assistant
+        image: USERNAME/codegen-assistant:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: OLLAMA_HOST
+          value: "http://ollama-service:11434"
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+      imagePullSecrets:
+      - name: dockerhub-secret
